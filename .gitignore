@@ -4,3 +4,7 @@
 *.ptx
 *.cubin
 *.fatbin
+*.run
+*.o
+**/images/Resultats/*.pgm
+.vscode
