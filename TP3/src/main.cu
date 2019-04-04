@@ -80,6 +80,10 @@ void run_exercice1(float* vec1, float* vec2, int size, int k, int iter){
         res_cpu = cpu_dotp(vec1,vec2,size);
         times.cpu_time = omp_get_wtime() - times.cpu_time;
         avg_times.cpu_time += times.cpu_time;
+
+        cudaFree(d_vec1CUDA);
+        cudaFree(d_vec2CUDA);
+        cudaFree(d_resCUDA);
     }
     // Check
     if(res_cpu != res_gpu){
@@ -144,6 +148,10 @@ void run_exercice2(u_char** Source, unsigned width, unsigned height, int iter){
         times_shared.cpu_time = times_naive.cpu_time;
         avg_times_naive.cpu_time += times_naive.cpu_time;
         avg_times_shared.cpu_time += times_shared.cpu_time;
+
+        cudaFree(d_SourceCUDA);
+        cudaFree(d_ResultatCUDA);
+        cudaFree(d_ResultatCUDAShared);
     }
 
     std::string image_filename=std::string("images/Resultats/Sobel_cpu.pgm");
@@ -214,6 +222,10 @@ void run_exercice3(u_char** Source, unsigned width, unsigned height, int iter){
         times_shared.cpu_time = times_naive.cpu_time;
         avg_times_naive.cpu_time += times_naive.cpu_time;
         avg_times_shared.cpu_time += times_shared.cpu_time;
+
+        cudaFree(d_SourceCUDA);
+        cudaFree(d_ResultatCUDA);
+        cudaFree(d_ResultatCUDAShared);
     }
 
     std::string image_filename=std::string("images/Resultats/Transpo_cpu.pgm");
@@ -247,6 +259,10 @@ void run_exercice4(u_char** Source, unsigned height, unsigned width, int iter) {
     times.cpu_time = omp_get_wtime();
     cpu_histo(Source, &resCPU, height, width);
     times.cpu_time = omp_get_wtime() - times.cpu_time;
+
+    cudaFree(d_SourceCUDA);
+    cudaFree(d_resCUDA);
+    cudaFree(d_resCUDAShared);
 
     display_timer(times);
     display_vec(resCPU,256,g_int);
