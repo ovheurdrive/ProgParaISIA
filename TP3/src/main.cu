@@ -61,6 +61,7 @@ void run_exercice1(float* vec1, float* vec2, int size, int k, int iter){
         cudaMalloc(&d_vec1CUDA, size*sizeof(float)); 
         cudaMalloc(&d_vec2CUDA, size*sizeof(float));
         cudaMalloc(&d_resCUDA, sizeof(float));
+
         // GPU Benchmark
         times.gpu_time_total = omp_get_wtime();
         cudaMemcpy(d_vec1CUDA, vec1, size*sizeof(float), cudaMemcpyHostToDevice);
@@ -189,7 +190,7 @@ void run_exercice3(u_char** Source, unsigned width, unsigned height, int iter){
         cudaMalloc(&d_ResultatCUDAShared, height*width*sizeof(u_char));
 
         dim3 threads(BLOCKDIM_X,BLOCKDIM_Y);
-        dim3 blocks(width/BLOCKDIM_X,height/BLOCKDIM_Y);
+        dim3 blocks((width/BLOCKDIM_X)+1,(height/BLOCKDIM_Y)+1);
         
         // GPU Naive Benchmark
         times_naive.gpu_time_total = omp_get_wtime();
@@ -244,28 +245,62 @@ void run_exercice3(u_char** Source, unsigned width, unsigned height, int iter){
 }
 
 void run_exercice4(u_char** Source, unsigned height, unsigned width, int iter) {
-    timer times = { 0 };
+    timer times_naive = { 0 };
+    timer avg_times_naive = { 0 };
+    timer times_shared = { 0 };
+    timer avg_times_shared = { 0 };
     int resCPU[256] = { 0 };
     int resGPU[256] = { 0 };
     int resGPUShared[256] = { 0 };
 
-    u_char* d_SourceCUDA;
-    int* d_resCUDA, *d_resCUDAShared;
+    u_char *d_SourceCUDA;
+    int *d_resCUDA, *d_resCUDAShared;
 
-    cudaMalloc(&d_SourceCUDA, height*width*sizeof(u_char));    
-    cudaMalloc(&d_resCUDA, height*width*sizeof(u_char));    
-    cudaMalloc(&d_resCUDAShared, height*width*sizeof(u_char));
+    cudaMalloc(&d_SourceCUDA, height*width*sizeof(u_char));
+    cudaMalloc(&d_resCUDA, 256*sizeof(int));
+    cudaMalloc(&d_resCUDAShared, 256*sizeof(int));
 
-    times.cpu_time = omp_get_wtime();
+    dim3 threads(BLOCKDIM_X,BLOCKDIM_Y);
+    dim3 blocks((width/BLOCKDIM_X)+1,(height/BLOCKDIM_Y)+1);
+
+    // GPU Naive Benchmark
+    times_naive.gpu_time_total = omp_get_wtime();
+    cudaMemcpy(d_SourceCUDA, Source[0], height*width*sizeof(u_char), cudaMemcpyHostToDevice);
+    times_naive.gpu_time_kernel = omp_get_wtime();
+    gpu_histo_kernel_naive<<<blocks,threads>>>(d_SourceCUDA, d_resCUDA, height, width);
+    times_naive.gpu_time_kernel = omp_get_wtime() - times_naive.gpu_time_kernel;
+    avg_times_naive.gpu_time_kernel += times_naive.gpu_time_kernel;
+    cudaMemcpy(resGPU, d_resCUDA, 256*sizeof(int), cudaMemcpyDeviceToHost);
+    times_naive.gpu_time_total = omp_get_wtime() - times_naive.gpu_time_total;
+    avg_times_naive.gpu_time_total += times_naive.gpu_time_total;
+
+    // GPU Shared Benchmark
+    times_shared.gpu_time_total = omp_get_wtime();
+    cudaMemcpy(d_SourceCUDA, Source[0], height*width*sizeof(u_char), cudaMemcpyHostToDevice);
+    times_shared.gpu_time_kernel = omp_get_wtime();
+    gpu_histo_kernel_shared<<<blocks,threads>>>(d_SourceCUDA, d_resCUDAShared, height, width);
+    times_shared.gpu_time_kernel = omp_get_wtime() - times_shared.gpu_time_kernel;
+    avg_times_shared.gpu_time_kernel += times_shared.gpu_time_kernel;
+    cudaMemcpy(resGPUShared, d_resCUDAShared, 256*sizeof(int), cudaMemcpyDeviceToHost);
+    times_shared.gpu_time_total = omp_get_wtime() - times_shared.gpu_time_total;
+    avg_times_shared.gpu_time_total += times_shared.gpu_time_total;
+
+    times_naive.cpu_time = omp_get_wtime();
     cpu_histo(Source, &resCPU, height, width);
-    times.cpu_time = omp_get_wtime() - times.cpu_time;
+    times_naive.cpu_time = omp_get_wtime() - times_naive.cpu_time;
+    times_shared.cpu_time = times_naive.cpu_time;
+    avg_times_naive.cpu_time += times_naive.cpu_time;
+    avg_times_shared.cpu_time += times_shared.cpu_time;
 
     cudaFree(d_SourceCUDA);
     cudaFree(d_resCUDA);
     cudaFree(d_resCUDAShared);
 
-    display_timer(times);
-    display_vec(resCPU,256,g_int);
-    display_vec(resGPU,256,g_int);
-    display_vec(resGPUShared,256,g_int);
+    std::cout << std::endl << "Naive GPU Algorithm:" << std::endl;
+    timer_avg(&avg_times_naive, iter, height*width);
+    display_timer(avg_times_naive);
+    std::cout << std::endl << "Shared GPU Algorithm:" << std::endl;
+    timer_avg(&avg_times_shared, iter, height*width);
+    display_timer(avg_times_shared);
+
 }
