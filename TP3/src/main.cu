@@ -216,13 +216,11 @@ void run_exercice3(u_char** Source, unsigned width, unsigned height, int iter){
         times_naive.gpu_time_total = omp_get_wtime() - times_naive.gpu_time_total;
         avg_times_naive.gpu_time_total += times_naive.gpu_time_total;
 
-        dim3 blocks2(width/(BLOCKDIM_X-2),height/(BLOCKDIM_Y-2));
-
         // GPU Shared Benchmark
         times_shared.gpu_time_total = omp_get_wtime();
         cudaMemcpy(d_SourceCUDA, Source[0], height*width*sizeof(u_char), cudaMemcpyHostToDevice);
         times_shared.gpu_time_kernel = omp_get_wtime();
-        gpu_transpo_kernel_shared<<<blocks2,threads>>>(d_SourceCUDA, d_ResultatCUDAShared, width, height);
+        gpu_transpo_kernel_shared<<<blocks,threads>>>(d_SourceCUDA, d_ResultatCUDAShared, width, height);
         times_shared.gpu_time_kernel = omp_get_wtime() - times_shared.gpu_time_kernel;
         avg_times_shared.gpu_time_kernel += times_shared.gpu_time_kernel;
         cudaMemcpy(ResultatGPUShared[0], d_ResultatCUDAShared, height*width*sizeof(u_char), cudaMemcpyDeviceToHost);
@@ -316,4 +314,7 @@ void run_exercice4(u_char** Source, unsigned height, unsigned width, int iter) {
     timer_avg(&avg_times_shared, iter, height*width);
     display_timer(avg_times_shared);
 
+    // display_vec(resCPU, 256, g_int);
+    // display_vec(resGPU, 256, g_int);
+    // display_vec(resGPUShared, 256, g_int);
 }

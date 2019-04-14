@@ -21,7 +21,6 @@ __global__ void gpu_transpo_kernel_shared(u_char *Source, u_char *Resultat, unsi
 
     if ((i<0)||(i>=height)||(j<0)||(j>=width)) {}
     else {            
-        //mainstream    
         tuile[y][x] = Source[i*width + j];
         __syncthreads();
         int i = blockIdx.y*(BLOCKDIM_Y) + x;

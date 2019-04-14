@@ -20,10 +20,10 @@ CUDAFLAGS = arch=compute_50,code=sm_50
 CFLAGS=
 
 # Exercises defines (uncomment to activate specific exercise)
-# CFLAGS+=-DEX1
+CFLAGS+=-DEX1
 CFLAGS+=-DEX2
-# CFLAGS+=-DEX3
-# CFLAGS+=-DEX4
+CFLAGS+=-DEX3
+CFLAGS+=-DEX4
 
 # -Xptxas -dscm=cg
 CXX_INC_FLAGS = -I$(INC_PATH)

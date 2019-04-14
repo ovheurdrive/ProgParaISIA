@@ -382,6 +382,59 @@ void cpu_transpo(u_char **Source, u_char **Resultat, unsigned width, unsigned he
 
 ### Performances
 
+![](bench/transpo_exec.png)
+
+```console
+==7605== Profiling application: exe/tpcuda.run ./images/Drone.pgm 1000
+==7605== Profiling result:
+            Type  Time(%)      Time     Calls       Avg       Min       Max  Name
+ GPU activities:   35.74%  80.503ms      1000  80.503us  79.489us  82.145us  gpu_transpo_kernel_naive(unsigned char*, unsigned char*, unsigned int, unsigned int)
+                   26.71%  60.174ms      2000  30.086us  27.616us  113.31us  [CUDA memcpy DtoH]
+                   26.40%  59.458ms      2000  29.728us  27.456us  106.85us  [CUDA memcpy HtoD]
+                   11.15%  25.125ms      1000  25.124us  24.896us  25.408us  gpu_transpo_kernel_shared(unsigned char*, unsigned char*, unsigned int, unsigned int)
+      API calls:   51.75%  411.17ms      4000  102.79us  27.077us  449.38us  cudaMemcpy
+                   30.61%  243.15ms      3000  81.050us  3.1720us  116.36ms  cudaMalloc
+                   13.73%  109.07ms      3000  36.355us  4.0450us  587.67us  cudaFree
+                    3.52%  27.951ms      2000  13.975us  7.5780us  350.43us  cudaLaunch
+                    0.21%  1.6391ms      8000     204ns     124ns  4.1170us  cudaSetupArgument
+                    0.10%  814.17us      2000     407ns     198ns  11.630us  cudaConfigureCall
+                    0.06%  492.20us        94  5.2360us     704ns  183.26us  cuDeviceGetAttribute
+                    0.01%  99.941us         1  99.941us  99.941us  99.941us  cuDeviceTotalMem
+                    0.01%  66.492us         1  66.492us  66.492us  66.492us  cuDeviceGetName
+                    0.00%  6.1370us         3  2.0450us  1.0470us  3.7180us  cuDeviceGetCount
+                    0.00%  3.0400us         2  1.5200us     974ns  2.0660us  cuDeviceGet
+
+
+==7442== Profiling application: exe/tpcuda.run ./images/Drone_huge.pgm 1000
+==7442== Profiling result:
+            Type  Time(%)      Time     Calls       Avg       Min       Max  Name
+GPU activities:   35.29%  4.10725s      2000  2.0536ms  1.9472ms  5.8023ms  [CUDA memcpy HtoD]
+                  35.16%  4.09172s      2000  2.0459ms  1.9795ms  5.8641ms  [CUDA memcpy DtoH]
+                  22.31%  2.59662s      1000  2.5966ms  2.5888ms  2.6033ms  gpu_transpo_kernel_naive(unsigned char*, unsigned char*, unsigned int, unsigned int)
+                   7.25%  843.36ms      1000  843.36us  840.75us  845.58us  gpu_transpo_kernel_shared(unsigned char*, unsigned char*, unsigned int, unsigned int)
+    API calls:    79.75%  12.2407s      4000  3.0602ms  2.0172ms  8.4083ms  cudaMemcpy
+                  12.31%  1.88959s      3000  629.86us  143.18us  1.1208ms  cudaFree
+                   7.46%  1.14505s      3000  381.68us  102.78us  111.44ms  cudaMalloc
+                   0.45%  68.481ms      2000  34.240us  16.491us  446.39us  cudaLaunch
+                   0.01%  2.1771ms      2000  1.0880us     369ns  22.550us  cudaConfigureCall
+                   0.01%  1.8696ms      8000     233ns     101ns  19.375us  cudaSetupArgument
+                   0.00%  362.64us        94  3.8570us     476ns  146.40us  cuDeviceGetAttribute
+                   0.00%  56.635us         1  56.635us  56.635us  56.635us  cuDeviceTotalMem
+                   0.00%  38.231us         1  38.231us  38.231us  38.231us  cuDeviceGetName
+                   0.00%  2.9330us         3     977ns     513ns  1.7480us  cuDeviceGetCount
+                   0.00%  1.5280us         2     764ns     529ns     999ns  cuDeviceGet
+```
+
+
+![](bench/transpo_accel.png)
+
+### Resultas
+
+| CPU | GPU | GPU Shared | GPU Shared (Drone.pgm) |
+|-|-|-|-|
+|![](images/Resultats/Transpo_cpu.png) | ![](images/Resultats/Transpo_gpu.png) | ![](images/Resultats/Transpo_gpu_shared.png) | ![](images/Resultats/Transpo_Drone.png)|
+
+
 ## V - Histogramme d'une image en niveau de gris
 
 ### Code Source (src/4-histo/histo.cu)
@@ -432,3 +485,55 @@ void cpu_histo(u_char** Source, int (*res)[256], unsigned height, unsigned width
 ```
 
 ### Performances
+
+![](bench/histo_exec.png)
+
+```console
+==2647== Profiling application: exe/tpcuda.run ./images/Drone_huge.pgm 1000
+==2647== Profiling result:
+            Type  Time(%)      Time     Calls       Avg       Min       Max  Name
+ GPU activities:   47.76%  6.8572ms         1  6.8572ms  6.8572ms  6.8572ms  gpu_histo_kernel_naive(unsigned char*, int*, unsigned int, unsigned int)
+                   29.41%  4.2220ms         2  2.1110ms  2.0843ms  2.1378ms  [CUDA memcpy HtoD]
+                   22.81%  3.2743ms         1  3.2743ms  3.2743ms  3.2743ms  gpu_histo_kernel_shared(unsigned char*, int*, unsigned int, unsigned int)
+                    0.02%  2.6880us         2  1.3440us  1.3120us  1.3760us  [CUDA memcpy DtoH]
+      API calls:   88.95%  132.41ms         3  44.136ms  11.018us  132.27ms  cudaMalloc
+                    9.87%  14.690ms         4  3.6724ms  2.1762ms  6.9099ms  cudaMemcpy
+                    0.69%  1.0203ms         3  340.11us  11.173us  849.99us  cudaFree
+                    0.32%  478.04us        94  5.0850us     458ns  196.66us  cuDeviceGetAttribute
+                    0.08%  119.19us         1  119.19us  119.19us  119.19us  cuDeviceGetName
+                    0.05%  70.939us         1  70.939us  70.939us  70.939us  cuDeviceTotalMem
+                    0.04%  54.589us         2  27.294us  21.592us  32.997us  cudaLaunch
+                    0.00%  6.6360us         3  2.2120us     800ns  4.8290us  cuDeviceGetCount
+                    0.00%  5.1970us         2  2.5980us     610ns  4.5870us  cuDeviceGet
+                    0.00%  2.2050us         8     275ns     136ns     633ns  cudaSetupArgument
+                    0.00%  2.0530us         2  1.0260us  1.0100us  1.0430us  cudaConfigureCall
+
+==2665== Profiling application: exe/tpcuda.run ./images/Drone.pgm 1000
+==2665== Profiling result:
+            Type  Time(%)      Time     Calls       Avg       Min       Max  Name
+ GPU activities:   54.21%  197.03us         1  197.03us  197.03us  197.03us  gpu_histo_kernel_naive(unsigned char*, int*, unsigned int, unsigned int)
+                   29.64%  107.71us         1  107.71us  107.71us  107.71us  gpu_histo_kernel_shared(unsigned char*, int*, unsigned int, unsigned int)
+                   15.52%  56.417us         2  28.208us  27.329us  29.088us  [CUDA memcpy HtoD]
+                    0.63%  2.3040us         2  1.1520us     992ns  1.3120us  [CUDA memcpy DtoH]
+      API calls:   98.73%  107.69ms         3  35.896ms  6.4140us  107.56ms  cudaMalloc
+                    0.44%  475.55us        94  5.0590us     733ns  185.95us  cuDeviceGetAttribute
+                    0.43%  466.50us         4  116.63us  38.438us  208.68us  cudaMemcpy
+                    0.23%  255.31us         3  85.103us  9.4790us  139.56us  cudaFree
+                    0.08%  82.162us         1  82.162us  82.162us  82.162us  cuDeviceTotalMem
+                    0.05%  50.476us         2  25.238us  12.574us  37.902us  cudaLaunch
+                    0.05%  50.337us         1  50.337us  50.337us  50.337us  cuDeviceGetName
+                    0.00%  4.1420us         3  1.3800us     845ns  2.3330us  cuDeviceGetCount
+                    0.00%  2.4760us         2  1.2380us     854ns  1.6220us  cuDeviceGet
+                    0.00%  1.8330us         8     229ns     134ns     462ns  cudaSetupArgument
+                    0.00%  1.7740us         2     887ns     815ns     959ns  cudaConfigureCall
+```
+
+
+![](bench/histo_accel.png)
+
+### Résultats
+
+|Histogram| Image|
+|-|-|
+| ![](bench/mona_lisa_histo.png) | ![](images/mona_lisa.png) |
+| ![](bench/drone_histo.png) | ![](images/Drone.png) |
