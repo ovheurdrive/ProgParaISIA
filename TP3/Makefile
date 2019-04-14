@@ -16,7 +16,15 @@ NVCC = nvcc -ccbin $(CC)
 
 CXXFLAGS = -std=c++11 -Xcompiler -fopenmp
 CUDAFLAGS = arch=compute_50,code=sm_50
-# CUDAFLAGS = arch=compute_30,code=sm_30
+
+CFLAGS=
+
+# Exercises defines (uncomment to activate specific exercise)
+# CFLAGS+=-DEX1
+CFLAGS+=-DEX2
+# CFLAGS+=-DEX3
+# CFLAGS+=-DEX4
+
 # -Xptxas -dscm=cg
 CXX_INC_FLAGS = -I$(INC_PATH)
 OPTFLAGS = -O3
@@ -28,7 +36,7 @@ OBJ += $(addprefix ${OBJ_PATH}/, $(addsuffix .o, $(basename $(CUDAFILE))))
 
 # -- Base rules ----------
 $(OBJ_PATH)/%.o : $(SRC_PATH)/%.cu
-	$(NVCC) -I /usr/local/cuda/include $(CXX_INC_FLAGS) -dc $< -o $@ 
+	$(NVCC) -I /usr/local/cuda/include $(CXX_INC_FLAGS) $(CFLAGS) -dc $< -o $@ 
 	 # --ptxas-options=-v
 
 

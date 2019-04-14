@@ -3,10 +3,17 @@
 int main(int argc, char** argv){
     std::string image_filename("images/Carre.pgm");
     int iter = 100;
+    int size = 1024*1024;
     if ( argc > 2 ) { 
         image_filename = argv[1];
         iter = atoi(argv[2]);
     }
+    if( argc > 3 ){
+        size = atoi(argv[3]);
+        size = size*size;
+        std::cout << "Dotp vec size : " << size << std::endl;
+    }
+
     srand(time(NULL));
 
     unsigned width, height;
@@ -21,7 +28,6 @@ int main(int argc, char** argv){
         return 0;
     }
 
-    int size = 1024*1024;
     float *vec1, *vec2;
     vec1 = (float*)malloc(size*sizeof(float));
     vec2 = (float*)malloc(size*sizeof(float));
@@ -31,18 +37,25 @@ int main(int argc, char** argv){
         vec2[i] = rand_float();
     }
 
-    // Exercice 1
+    #ifdef EX1
     std::cout << "Exercice 1 : Dot Product\n====================================" << std::endl;
     run_exercice1(vec1,vec2, size, BLOCKDIM_X, iter);
+    #endif
 
+    #ifdef EX2
     std::cout << "\nExercice 2 : Sobel Filter\n====================================" << std::endl;
     run_exercice2(Source, width, height, iter);
+    #endif
 
+    #ifdef EX3
     std::cout << "\nExercice 3 : Matrix Transposition\n====================================" << std::endl;
     run_exercice3(Source, width, height, iter);
+    #endif
 
+    #ifdef EX4
     std::cout << "\nExercice 4: Image Histogram\n====================================" << std::endl;
     run_exercice4(Source, height, width, iter);
+    #endif
 
     free(vec1);
     free(vec2);

@@ -37,9 +37,12 @@ void display_timer(timer times){
 }
 
 void timer_avg(timer* p_timer, int iter, int size){
-    p_timer->gpu_time_kernel /= iter*size;
-    p_timer->gpu_time_total /= iter*size;
-    p_timer->cpu_time /= iter*size; 
+    p_timer->gpu_time_kernel /= iter;
+    p_timer->gpu_time_total /= iter;
+    p_timer->cpu_time /= iter;
+    p_timer->gpu_time_kernel /= size;
+    p_timer->gpu_time_total /= size;
+    p_timer->cpu_time /= size;
 }
 
 float rand_float(){
