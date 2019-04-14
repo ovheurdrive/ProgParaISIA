@@ -282,10 +282,9 @@ void cpu_sobel(u_char **Source, u_char **Resultat, unsigned width, unsigned heig
 ### Performances
 
 Les performances sont mesurées sur 1000 itérations.
-L'échelle de droite des graphiques représente le log4 de la taille des images (width*height).
+L'échelle de droite des graphiques représente le log2 de la taille des images (width*height).
 
 ![](bench/sobel_exec.png)
-*n_k = naive kernel, n_t = naive total, s_k = shared kernel, s_t = shared total*
 
 On peut observer que le temps d'execution du cpu est constant peut importe la taille de l'image, mais on observe comme précédemment que le kernel est bien plus rapide sur des données de tailles plus grandes.
 
@@ -337,6 +336,10 @@ Le résultat en shared présente aussi des résultats étranges sur les bords (p
 
 ## IV - Transposée d'une image
 
+Pour la transposée, je me suis inspiré, du code de sobel, et ait appliqué un algorithme de transposition d'abord naif (inversion hauteur/largeur), mais cet algorithme ne permet pas des accès mémoire coalescent.
+
+La solution pour remédier à cela est d'uiliser la mémoire partagée du GPU pour créer une table intermédiaire dans laquel on effectue la transposition, puis on écrit de manière coalescente le résultat final dans le tableau.
+
 ### Code Source (src/3-transpo/transpo.cu)
 
 ```C
@@ -361,7 +364,6 @@ __global__ void gpu_transpo_kernel_shared(u_char *Source, u_char *Resultat, unsi
 
     if ((i<0)||(i>=height)||(j<0)||(j>=width)) {}
     else {            
-        //mainstream    
         tuile[y][x] = Source[i*width + j];
         __syncthreads();
         int i = blockIdx.y*(BLOCKDIM_Y) + x;
@@ -382,7 +384,17 @@ void cpu_transpo(u_char **Source, u_char **Resultat, unsigned width, unsigned he
 
 ### Performances
 
+J'ai fait tourner le benchmark sur 1000 itérations. 
+
 ![](bench/transpo_exec.png)
+
+On observe un comportement étrange sur l'image `Carre.pgm` : Le temps d'execution total descend bien en dessous de la barrière habituelle des 10e-9s.
+
+Je n'ai pas pu vérifier l'origine de ces valeurs car le profiler a dit être incapable de mesurer précisément le temps d'execution (invalid timestamps).
+
+Pour toutes les autres images, on observe toujours cette limitation liée aux accès mémoire.
+
+Le profiling du GPU donne des résultats comme les suivants (`Drone.pgm` et `Drone_huge.pgm`)
 
 ```console
 ==7605== Profiling application: exe/tpcuda.run ./images/Drone.pgm 1000
@@ -425,17 +437,30 @@ GPU activities:   35.29%  4.10725s      2000  2.0536ms  1.9472ms  5.8023ms  [CUD
                    0.00%  1.5280us         2     764ns     529ns     999ns  cuDeviceGet
 ```
 
+On observe bien que le kernel shared est plus rapide de manière relativement significative par rapport au kernel non coalescent.
 
 ![](bench/transpo_accel.png)
 
 ### Resultas
 
+Voisi un exemple des résultats obtenus (`coins.pgm` et `Drone.pgm`)
+
 | CPU | GPU | GPU Shared | GPU Shared (Drone.pgm) |
 |-|-|-|-|
 |![](images/Resultats/Transpo_cpu.png) | ![](images/Resultats/Transpo_gpu.png) | ![](images/Resultats/Transpo_gpu_shared.png) | ![](images/Resultats/Transpo_Drone.png)|
 
+On observe des problème sur l'algorithme shared avec l'image `coins.pgm` : Une partie des pixels/blocks semble ne pas avoir été récupéré correctement.
+
+Mais en appliquant exactement le même code sur l'image `Drone.pgm`, on observe plus ces problèmes.
+
+Je ne saurais pas en expliquer la source.
+
 
 ## V - Histogramme d'une image en niveau de gris
+
+Pour réaliser l'histogramme d'une imageen niveau de gris, La méthode naive est que chaque thread fait un `atomicAdd` de son pixel dans le tableau, mais il y'a donc une forte concurrence sur cette opération avec beaucoups de lock potentiels.
+
+Une solution plus intelligente, serait de créer un histogramme shared dans chaque block qu'on initialise à 0. Ensuite, chaque block va remplir son histogramme avec l'ensemble de pixels qui lui sont attribués avec des `atomicAdd`, puis une fois que tout les threads du block ont terminé, on `atomicAdd` les histogrammes partiel dans l'histogramme final. 
 
 ### Code Source (src/4-histo/histo.cu)
 
@@ -486,7 +511,13 @@ void cpu_histo(u_char** Source, int (*res)[256], unsigned height, unsigned width
 
 ### Performances
 
+Voici les résultats du benchmark sur 1000 itérations.
+
 ![](bench/histo_exec.png)
+
+Les résultats sont assez similaire aux autresproblèmes, cependant on observe un différence vraiment notable entre l'algorithme naif et l'algorithme partagé. En effet ce dernier  est en general deux fois plus rapide que l'algorithme naif.
+
+On peut observer cela de manière flagrante avec le profiler,  le kernel naif est en mmoyenne deux fois plus lent que le kernel partagé (`Drone.pgm` et `Drone_huge.pgm`) :
 
 ```console
 ==2647== Profiling application: exe/tpcuda.run ./images/Drone_huge.pgm 1000
@@ -528,12 +559,31 @@ void cpu_histo(u_char** Source, int (*res)[256], unsigned height, unsigned width
                     0.00%  1.7740us         2     887ns     815ns     959ns  cudaConfigureCall
 ```
 
+On observe pour la première fois que le `cudaMemcpy` n'est pas le bottleneck du programme car on ne copie qu'un tableau de [256*int].
+
+Les bottleneck ici sont vraiment le kernel d'un côté et les allocations mémoire (qui ne sont pas comptées dans le benchmark d'execution) de l'autre.
 
 ![](bench/histo_accel.png)
 
+Ici on observe bien une correlation entre l'accélération naif/shared du kernel , et celui du programme entier.
+
 ### Résultats
+
+Voici deux histogrammes obtenus avec ces programmes:
 
 |Histogram| Image|
 |-|-|
 | ![](bench/mona_lisa_histo.png) | ![](images/mona_lisa.png) |
 | ![](bench/drone_histo.png) | ![](images/Drone.png) |
+
+On voit bien que les 3 courbes sont supperposées, donc l'erreur des programme semble nulle à priori.
+
+## VI - Remarques Générales
+
+### Sur les benchmarks
+
+Je n'ai pas effectué de mesures de performances sur des tailles de blocs/threads différents par manque de temps, mais on observe que (dans une cert aine limite) l'augmentation de la dimension des blocks à tendance à accelérer les algorithmes GPU.
+
+### Sur les résultats
+
+On observe que sur certains algorithmes, il y'a une quantité de problèmes/erreurs non négligeables (dotp, sobel, transpo), et je n'ai pas pu en isoler la cause exacte.
