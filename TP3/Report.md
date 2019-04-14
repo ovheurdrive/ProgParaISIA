@@ -62,30 +62,30 @@ Ce kernel sera appelé avec des blocks contenant chacun un certain nombre de thr
 
 ```C
 // nombre d'argument de 1 à 3 pour le nombre de dimensions
-dim3 blocks(args) // ex: block(10,10)
-dim3 threads(args2) // threads(32,32)
-kernel<<<blocks,threads>>>(args)
+dim3 blocks(args); // ex: block(10,10)
+dim3 threads(args2); // threads(32,32)
+kernel<<<blocks,threads>>>(args);
 ```
 
 Les données envoyés au kernel (si elles ne sont pas de types atomiques comme `int` ou `unsigned`) doivent être alloués dans le mémoire du GPU en utilisant les fonctions suivantes:
 
 ```C
 // On alloue srcCuda et resCuda dans la mémoire du GPU
-cudaMalloc(&srcCuda, size)
-cudaMalloc(&rescuda, size)
+cudaMalloc(&srcCuda, size);
+cudaMalloc(&rescuda, size);
 
 // On copie nos données dans cette variable
-cudaMemcpy(srcCuda, source, size, cudaMemcpyHostToDevice)
+cudaMemcpy(srcCuda, source, size, cudaMemcpyHostToDevice);
 
 // On appelle le kernel avec n blocks de k threads
-kernel<<<n,k>>>(srcCuda, resCuda, other_args...)
+kernel<<<n,k>>>(srcCuda, resCuda, other_args...);
 
 // On récupère le résultat dans une variable CPU
-cudaMemcpy(res, resCuda, size, cudaMemcpyDeviceToHost)
+cudaMemcpy(res, resCuda, size, cudaMemcpyDeviceToHost);
 
 // On libère la mémoire du GPU
-cudaFree(srcCuda)
-cudaFree(resCuda)
+cudaFree(srcCuda);
+cudaFree(resCuda);
 ```
 
 Pour le premier exercice, on utilise un PRNG pour remplir les vecteurs.
@@ -160,7 +160,7 @@ On peut observer que le kernel accélere de manière exponentielle en fonction d
 ![](bench/dotp_accel.png)
 
 Cela s'explique simplement quand on regarde le profil d'execution GPU:
-```
+```console
 GPU activities:   65.94%  54.4803s      1000  54.480ms  54.480ms  54.490ms  gpu_dotp_kernel(int, float*, float*, float*)
                   34.05%  28.1340s      2000  14.067ms  13.018ms  32.907ms  [CUDA memcpy HtoD]
                    0.00%  1.2704ms      1000  1.2700us  1.2160us  2.9120us  [CUDA memcpy DtoH]
@@ -188,7 +188,7 @@ On voit ici le log10 des temps d'execution en fonction de la taille des données
 
 Parfois le résultat du CPU et du GPU étaient différents :
 
-```
+```console
 Dotp vec size : 16777216
 Image Dimensions: 720x480
 Exercice 1 : Dot Product
