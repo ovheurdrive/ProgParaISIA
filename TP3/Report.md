@@ -14,6 +14,14 @@ GPU :
 - GPU Clock 924MHz + Boost
 - Memory : 3024MiB GDDR5, 2500 MHz
 
+### Folders
+
+- `src`: codes sources
+- `include`: headers
+- `bench`: graphiques et log de benchmark
+- `exe` et `obj` : binaires
+- `images`: images sources et résultats
+
 ### Config
 
 Pour réaliser ce TP, if faut une version récente de GCC supportant les dernière instructions OpenMP, une carte graphique Nvidia avec un pilote graphique à jour (390.116 sur GeForce GTX 970M dans le cas de ma machine). Il faut egalement installer le paquet `nvidia-cuda-toolkit` sur Linux qui fournit la dernière version de cuda disponible pour le Driver installé (9.1 à l'heure actuelle).
@@ -26,7 +34,7 @@ Pour réaliser ce TP, if faut une version récente de GCC supportant les derniè
 ```
 Build : `make clean && make`
 
-Usage : `./tpcuda.run [path to image] [number of iterations]`
+Usage : `./tpcuda.run [path to pgm image] [number of iterations]`
 
 Fichiers : `main.(cu/cuh), utils.(cu/h), dotp.(cu/cuh), sobel.(cu/cuh), transpo.(cu/cuh), histo.(cu/cuh), container.(cu/cuh), ios.(cu/cuh), pixmap_io.(cu/cuh) and global_paramters.cuh`
 
